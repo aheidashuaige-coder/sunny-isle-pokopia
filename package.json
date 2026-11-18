@@ -1,0 +1,11 @@
+{
+  "name": "sunny-isle-pokopia",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An iOS Safari friendly Pokémon-inspired island life game.",
+  "scripts": {
+    "start": "node serve.js",
+    "check": "node --check game.js && node --check serve.js"
+  },
+  "license": "UNLICENSED"
+}

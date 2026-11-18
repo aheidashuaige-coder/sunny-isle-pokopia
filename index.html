@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#2f6f69" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="晴空岛" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="description" content="一款为 iOS Safari 制作的宝可梦风小岛生活游戏。" />
+    <meta name="apple-touch-icon" href="./assets/icon.svg" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>晴空岛 · Pokopia 小岛日记</title>
+  </head>
+  <body>
+    <main id="gameShell" class="game-shell">
+      <canvas id="world" aria-label="晴空岛游戏地图"></canvas>
+      <div class="sky-wash" aria-hidden="true"></div>
+      <div class="map-grain" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div class="brand" aria-label="晴空岛 Pokopia">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" role="img">
+              <path
+                d="M24 5C14 5 7 12 7 21c0 11 8 22 17 22s17-11 17-22C41 12 34 5 24 5Z"
+                fill="currentColor"
+              />
+              <path d="M24 5c5 0 8 3 8 8s-3 9-8 9-8-4-8-9 3-8 8-8Z" fill="#f9d5e3" />
+              <circle cx="20" cy="13" r="1.5" fill="#2d3846" />
+              <circle cx="28" cy="13" r="1.5" fill="#2d3846" />
+              <path d="M21 17c2 1.5 4 1.5 6 0" fill="none" stroke="#2d3846" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <span>晴空岛 · 第 <b id="dayNumber">1</b> 天</span>
+            <h1>POKOPIA</h1>
+          </div>
+        </div>
+
+        <div class="dayline" aria-label="岛上时间">
+          <span id="weatherIcon" class="weather-icon" aria-hidden="true">☀</span>
+          <span id="clockText">09:20</span>
+          <span class="dayline-divider"></span>
+          <span id="weatherText">晴朗微风</span>
+        </div>
+
+        <div class="resources" aria-label="背包资源">
+          <div class="resource wood">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 3h8a4 4 0 0 1 0 8H7a4 4 0 0 1 0-8Z" />
+              <path d="M9 11h8a4 4 0 0 1 0 8H9a4 4 0 0 1 0-8Z" />
+              <circle cx="10" cy="7" r="1.4" />
+              <circle cx="12" cy="15" r="1.4" />
+            </svg>
+            <b id="woodCount">0</b>
+          </div>
+          <div class="resource stone">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m4 15 2-7 7-4 7 5-1 9-9 3-6-6Z" />
+              <path d="m6 8 5 3 7-1M11 11l2 9" />
+            </svg>
+            <b id="stoneCount">0</b>
+          </div>
+          <div class="resource berry">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="9" cy="14" r="4" />
+              <circle cx="15" cy="15" r="4" />
+              <circle cx="13" cy="9" r="4" />
+              <path d="M13 5c0-2 2-3 4-3-1 2-1 3-4 4Z" />
+            </svg>
+            <b id="berryCount">0</b>
+          </div>
+          <div class="resource bloom">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="9" r="3" />
+              <path d="M12 2c2.2 0 4 1.8 4 4-2.2 0-4-1.8-4-4ZM12 12c2.2 0 4 1.8 4 4-2.2 0-4-1.8-4-4ZM12 6c-2.2 0-4 1.8-4 4 2.2 0 4-1.8 4-4ZM12 12c-2.2 0-4 1.8-4 4 2.2 0 4-1.8 4-4Z" />
+            </svg>
+            <b id="bloomCount">0</b>
+          </div>
+          <div class="resource coin" aria-label="贝壳">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" />
+              <path d="M12 7v10M9.5 9.2c0-1.5 5-1.5 5 0 0 2.8-5 1.4-5 4.2 0 1.5 5 1.5 5 0" />
+            </svg>
+            <b id="coinCount">0</b>
+          </div>
+        </div>
+      </header>
+
+      <button id="journalButton" class="journal-button" type="button" aria-label="打开岛民手账" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+          <path d="M8 7h8M8 11h5" />
+        </svg>
+        <span>岛民手账</span>
+        <i id="residentDot" aria-hidden="true"></i>
+      </button>
+
+      <section class="quest-strip" aria-label="当前目标">
+        <div class="quest-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3v18M5 8.5h14M7 3h10l2 5H5l2-5Z" />
+            <path d="M7 21h10" />
+          </svg>
+        </div>
+        <div class="quest-copy">
+          <span>岛上委托</span>
+          <strong id="questTitle">早安，莓果早餐</strong>
+        </div>
+        <div class="quest-progress">
+          <b id="questProgress">0 / 3</b>
+          <span><i id="questBar"></i></span>
+        </div>
+        <button id="questAction" class="quest-action" type="button" aria-label="追踪当前委托">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </button>
+      </section>
+
+      <aside id="journal" class="journal" aria-hidden="true">
+        <div class="journal-head">
+          <div>
+            <span>ISLAND NOTES</span>
+            <h2>岛民手账</h2>
+          </div>
+          <button id="journalClose" class="icon-button" type="button" aria-label="关闭手账">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="island-rating">
+          <div class="rating-ring">
+            <strong id="ratingValue">—</strong>
+            <span>舒适度</span>
+          </div>
+          <div class="rating-copy">
+            <span>今日小岛</span>
+            <h3 id="ratingTitle">刚刚开始发芽</h3>
+            <p id="ratingHint">添些花草和休憩设施，朋友们就会来。</p>
+          </div>
+        </div>
+        <div id="residentList" class="resident-list"></div>
+        <div class="journal-tip">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2Z" />
+          </svg>
+          <p>每完成一项岛上委托，都会有新的宝可梦循着气味来到晴空岛。</p>
+        </div>
+      </aside>
+
+      <div id="hintBubble" class="hint-bubble" aria-live="polite">
+        <span id="hintText">点一下草地就能出发</span>
+      </div>
+
+      <section class="player-status" aria-label="玩家状态">
+        <div class="avatar-mini" aria-hidden="true">
+          <span class="avatar-face">•ᴗ•</span>
+        </div>
+        <div class="status-copy">
+          <div>
+            <strong>桃桃</strong>
+            <span>Lv.<b id="levelValue">3</b></span>
+          </div>
+          <div class="energy-track" aria-label="体力">
+            <i id="energyBar"></i>
+          </div>
+        </div>
+      </section>
+
+      <div id="buildTray" class="build-tray" aria-hidden="true">
+        <div class="tray-heading">
+          <div>
+            <span>建造模式</span>
+            <strong>选一件放到草地上</strong>
+          </div>
+          <button id="buildClose" class="icon-button" type="button" aria-label="关闭建造菜单">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div id="buildItems" class="build-items"></div>
+      </div>
+
+      <nav class="toolbelt" aria-label="工具">
+        <button class="tool active" data-tool="gather" type="button" aria-pressed="true">
+          <span class="tool-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 13V5a2 2 0 1 1 4 0v6M12 11V3a2 2 0 1 1 4 0v8M16 11V6a2 2 0 1 1 4 0v9a6 6 0 0 1-6 6h-2a6 6 0 0 1-5.4-3.4L4 13.4a1.8 1.8 0 0 1 3-2l2 2" />
+            </svg>
+          </span>
+          <span class="tool-label">采集</span>
+          <i class="key-hint">1</i>
+        </button>
+        <button class="tool" data-tool="water" type="button" aria-pressed="false">
+          <span class="tool-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 10h10v7a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4v-7Z" />
+              <path d="M15 12h3a2 2 0 0 0 2-2V8M7 10l-3-2M10 10V7M4 6h8" />
+            </svg>
+          </span>
+          <span class="tool-label">浇水</span>
+          <span id="waterCanBadge" class="tool-badge">3</span>
+          <i class="key-hint">2</i>
+        </button>
+        <button class="tool" data-tool="plant" type="button" aria-pressed="false">
+          <span class="tool-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 22V10M12 13c-5 0-8-3-8-8 5 0 8 3 8 8ZM12 9c5 0 8-3 8-8-5 0-8 3-8 8Z" />
+            </svg>
+          </span>
+          <span class="tool-label">种植</span>
+          <span id="seedBadge" class="tool-badge">4</span>
+          <i class="key-hint">3</i>
+        </button>
+        <button class="tool" data-tool="build" type="button" aria-pressed="false">
+          <span class="tool-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m3 21 5-12 7 7-12 5ZM14 10l4-7 3 3-7 4ZM13 16l5-3 3 3-5 5-3-5Z" />
+            </svg>
+          </span>
+          <span class="tool-label">建造</span>
+          <i class="key-hint">4</i>
+        </button>
+      </nav>
+
+      <button id="soundButton" class="sound-button" type="button" aria-label="关闭声音" aria-pressed="true">
+        <svg class="sound-on" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M11 5 6 9H2v6h4l5 4V5ZM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />
+        </svg>
+        <svg class="sound-off" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M11 5 6 9H2v6h4l5 4V5ZM22 9l-6 6M16 9l6 6" />
+        </svg>
+      </button>
+
+      <div id="toastStack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
+
+      <div id="welcome" class="welcome">
+        <div class="welcome-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64">
+            <path d="M32 5C17 5 8 15 8 27c0 16 12 32 24 32s24-16 24-32C56 15 47 5 32 5Z" fill="#ef9eb7" />
+            <path d="M32 5c7 0 12 4 12 11s-5 12-12 12-12-5-12-12S25 5 32 5Z" fill="#f8d3df" />
+            <circle cx="26" cy="17" r="2" fill="#334151" />
+            <circle cx="38" cy="17" r="2" fill="#334151" />
+            <path d="M28 23c3 2 5 2 8 0" fill="none" stroke="#334151" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </div>
+        <span>欢迎来到晴空岛</span>
+        <h2>把这里变成<br />大家都想住下的地方</h2>
+        <p>点草地移动，拿起工具采集。今天也慢慢来。</p>
+        <button id="startGame" type="button">
+          <span>开始岛居生活</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </button>
+      </div>
+
+      <div id="rotateTip" class="rotate-tip" aria-hidden="true">
+        <svg viewBox="0 0 24 24">
+          <rect x="6" y="2" width="12" height="20" rx="2" />
+          <path d="M10 18h4" />
+        </svg>
+        <span>竖屏游玩更舒服</span>
+      </div>
+    </main>
+
+    <script src="./game.js"></script>
+  </body>
+</html>

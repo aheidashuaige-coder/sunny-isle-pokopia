@@ -1,0 +1,19 @@
+{
+  "name": "晴空岛 · Pokopia 小岛日记",
+  "short_name": "晴空岛",
+  "description": "采莓果、浇花、搭小屋，让宝可梦朋友住进晴空岛。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#8fcfc2",
+  "theme_color": "#2f6f69",
+  "icons": [
+    {
+      "src": "./assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
