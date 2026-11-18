@@ -25,7 +25,13 @@ npm start
 
 ## GitHub Pages
 
-仓库根目录就是静态站点。启用 GitHub Pages 时选择部署分支的根目录即可。
+仓库根目录就是静态站点。推送到 `main` 后，`.github/workflows/pages.yml` 会自动部署到 GitHub Pages。
+
+部署地址：
+
+`https://aheidashuaige-coder.github.io/sunny-isle-pokopia/`
+
+部署完成后，可直接在 iPhone 的 Safari 中打开。
 
 ## 说明
 
