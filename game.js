@@ -1,8 +1,9 @@
 (() => {
   "use strict";
 
-  const canvas = document.querySelector("#world");
-  const ctx = canvas.getContext("2d", { alpha: true });
+  const canvas = document.querySelector("#world3d");
+  const fallbackCanvas = document.querySelector("#world");
+  const ctx = fallbackCanvas.getContext("2d", { alpha: true });
   const WORLD_W = 12;
   const WORLD_H = 10;
   const SAVE_KEY = "sunny-isle-pokopia-v1";
@@ -311,13 +312,16 @@
     width = window.innerWidth;
     height = window.innerHeight;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    fallbackCanvas.width = Math.round(width * dpr);
+    fallbackCanvas.height = Math.round(height * dpr);
+    fallbackCanvas.style.width = `${width}px`;
+    fallbackCanvas.style.height = `${height}px`;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     viewScale = clamp(width / 940, 0.74, 1.12);
     if (height < 540 && width > height) viewScale *= 0.88;
+    if (window.SunnyIsle3D?.ready) {
+      window.SunnyIsle3D.resize({ width, height, dpr });
+    }
   }
 
   function getWeather() {
@@ -415,6 +419,9 @@
   }
 
   function screenToTile(screenX, screenY) {
+    if (window.SunnyIsle3D?.ready) {
+      return window.SunnyIsle3D.pick(screenX, screenY);
+    }
     for (let y = WORLD_H - 1; y >= 0; y -= 1) {
       for (let x = WORLD_W - 1; x >= 0; x -= 1) {
         if (pointInPolygon({ x: screenX, y: screenY }, tilePolygon(x, y))) {
@@ -1597,6 +1604,15 @@
   }
 
   function drawWorld(now) {
+    if (window.SunnyIsle3D?.ready) {
+      window.SunnyIsle3D.render({
+        now,
+        state,
+        player,
+        pending: player.pending,
+      });
+      return;
+    }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
     drawSky(now);
@@ -2219,6 +2235,10 @@
   }
 
   function burstAt(x, y, kind, count) {
+    if (window.SunnyIsle3D?.ready) {
+      window.SunnyIsle3D.emit({ x, y }, kind, count);
+      return;
+    }
     const point = worldToScreen(x, y);
     for (let i = 0; i < count; i += 1) {
       const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
@@ -2238,6 +2258,10 @@
   }
 
   function waterBurst(x, y) {
+    if (window.SunnyIsle3D?.ready) {
+      window.SunnyIsle3D.emit({ x, y }, "water", 12);
+      return;
+    }
     const point = worldToScreen(x, y);
     for (let i = 0; i < 12; i += 1) {
       particles.push({
@@ -2536,36 +2560,39 @@
     let lastPointerActivation = 0;
     let lastCanvasActivation = 0;
 
-    const activateCanvas = (clientX, clientY) => {
+    const activateCanvas = (clientX, clientY, surface = canvas) => {
       const now = performance.now();
       if (now - lastCanvasActivation < 260) return;
       lastCanvasActivation = now;
       if (dom.welcome && !dom.welcome.classList.contains("dismissed")) return;
       if (dom.journal.classList.contains("open")) return;
-      const rect = canvas.getBoundingClientRect();
+      const rect = surface.getBoundingClientRect();
       const tile = screenToTile(clientX - rect.left, clientY - rect.top);
+      canvas.dataset.lastTile = tile ? `${tile.x},${tile.y}` : "none";
       if (tile) handleTileTap(tile);
     };
 
-    canvas.addEventListener("pointerdown", (event) => {
-      pointerStart = { x: event.clientX, y: event.clientY, time: performance.now() };
-      ensureAudio();
-    });
-    canvas.addEventListener("pointerup", (event) => {
-      if (!pointerStart) return;
-      const moved = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y);
-      const elapsed = performance.now() - pointerStart.time;
-      pointerStart = null;
-      if (moved > 15 || elapsed > 850) return;
-      lastPointerActivation = performance.now();
-      activateCanvas(event.clientX, event.clientY);
-    });
-    canvas.addEventListener("pointercancel", () => {
-      pointerStart = null;
-    });
-    canvas.addEventListener("click", (event) => {
-      if (performance.now() - lastPointerActivation < 500) return;
-      activateCanvas(event.clientX, event.clientY);
+    [canvas, fallbackCanvas].forEach((surface) => {
+      surface.addEventListener("pointerdown", (event) => {
+        pointerStart = { x: event.clientX, y: event.clientY, time: performance.now() };
+        ensureAudio();
+      });
+      surface.addEventListener("pointerup", (event) => {
+        if (!pointerStart) return;
+        const moved = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y);
+        const elapsed = performance.now() - pointerStart.time;
+        pointerStart = null;
+        if (moved > 15 || elapsed > 850) return;
+        lastPointerActivation = performance.now();
+        activateCanvas(event.clientX, event.clientY, surface);
+      });
+      surface.addEventListener("pointercancel", () => {
+        pointerStart = null;
+      });
+      surface.addEventListener("click", (event) => {
+        if (performance.now() - lastPointerActivation < 500) return;
+        activateCanvas(event.clientX, event.clientY, surface);
+      });
     });
 
     $$(".tool").forEach((button) => {
@@ -2639,6 +2666,26 @@
 
   function init() {
     resizeCanvas();
+    let scene3dReady = false;
+    if (window.SunnyIsle3D) {
+      scene3dReady = window.SunnyIsle3D.init({
+        canvas,
+        width,
+        height,
+        state,
+        player,
+        worldObjects,
+        residents: RESIDENTS,
+        worldWidth: WORLD_W,
+        worldHeight: WORLD_H,
+        tileType,
+      });
+    }
+    if (scene3dReady) {
+      fallbackCanvas.style.opacity = "0";
+    } else {
+      canvas.style.display = "none";
+    }
     bindEvents();
     setTool(state.tool || "gather");
     updateHud();

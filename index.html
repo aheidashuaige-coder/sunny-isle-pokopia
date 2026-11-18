@@ -21,6 +21,7 @@
   <body>
     <main id="gameShell" class="game-shell">
       <canvas id="world" aria-label="晴空岛游戏地图"></canvas>
+      <canvas id="world3d" aria-label="晴空岛三维游戏场景"></canvas>
       <div class="sky-wash" aria-hidden="true"></div>
       <div class="map-grain" aria-hidden="true"></div>
 
@@ -275,6 +276,8 @@
       </div>
     </main>
 
+    <script src="./vendor/three.min.js"></script>
+    <script src="./render3d.js"></script>
     <script src="./game.js"></script>
   </body>
 </html>
