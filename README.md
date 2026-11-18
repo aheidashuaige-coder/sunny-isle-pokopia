@@ -25,13 +25,19 @@ npm start
 
 ## GitHub Pages
 
-仓库根目录就是静态站点。推送到 `main` 后，`.github/workflows/pages.yml` 会自动部署到 GitHub Pages。
+仓库根目录就是静态站点。首次使用时，需要仓库管理员在 GitHub 的 `Settings > Pages` 中把来源设为 `GitHub Actions`，然后在 Actions 页面手动运行 `Deploy game to GitHub Pages`。
 
 部署地址：
 
 `https://aheidashuaige-coder.github.io/sunny-isle-pokopia/`
 
 部署完成后，可直接在 iPhone 的 Safari 中打开。
+
+## iPhone Safari 局域网访问
+
+在电脑上运行 `npm start` 后，让 iPhone 与电脑连接同一个 Wi-Fi，在 Safari 中打开：
+
+`http://电脑的局域网 IP:4173/?play=1`
 
 ## 说明
 
