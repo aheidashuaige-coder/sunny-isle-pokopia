@@ -36,6 +36,7 @@
   let firstCamera = true;
   let renderedFrames = 0;
   let pickGroup;
+  let pixelMode = false;
 
   const cameraOffset = new THREE.Vector3(8.4, 10.8, 12.2);
   const tempVector = new THREE.Vector3();
@@ -83,6 +84,10 @@
 
     try {
       config = options;
+      pixelMode = Boolean(options.pixelMode);
+      if (pixelMode) {
+        cameraOffset.set(9.2, 11.2, 12.8);
+      }
       canvas = options.canvas;
       renderer = new THREE.WebGLRenderer({
         canvas,
@@ -102,7 +107,7 @@
       scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x94d3c9, 0.018);
       camera = new THREE.PerspectiveCamera(
-        options.width < 620 ? 42 : 36,
+        options.width < 620 ? (pixelMode ? 39 : 42) : pixelMode ? 32 : 36,
         options.width / options.height,
         0.1,
         70,
@@ -116,7 +121,7 @@
       createIsland();
       createStaticObjects();
       createResidents();
-      playerView = createPlayer();
+      playerView = pixelMode ? createPixelCharacter("hero", 1.7) : createPlayer();
       scene.add(playerView.root);
       createSelection();
       createParticles();
@@ -832,9 +837,15 @@
   function createResidents() {
     const residentRoot = new THREE.Group();
     scene.add(residentRoot);
-    residentViews.pikachu = createPikachu();
-    residentViews.eevee = createEevee();
-    residentViews.bulbasaur = createBulbasaur();
+    if (pixelMode) {
+      residentViews.pikachu = createPixelCharacter("pikachu", 1.0);
+      residentViews.eevee = createPixelCharacter("eevee", 1.04);
+      residentViews.bulbasaur = createPixelCharacter("bulbasaur", 0.9);
+    } else {
+      residentViews.pikachu = createPikachu();
+      residentViews.eevee = createEevee();
+      residentViews.bulbasaur = createBulbasaur();
+    }
     Object.entries(residentViews).forEach(([id, view]) => {
       const resident = config.residents[id];
       const position = gridPosition(resident.x, resident.y);
@@ -843,6 +854,294 @@
       optimizeShadows(view.root);
       residentRoot.add(view.root);
     });
+  }
+
+  function createPixelCharacter(kind, height) {
+    const root = new THREE.Group();
+    addBlobShadow(root, height * 0.26, height * 0.12);
+    const frames = [createPixelTexture(kind, 0), createPixelTexture(kind, 1)];
+    const material = new THREE.SpriteMaterial({
+      map: frames[0],
+      transparent: true,
+      alphaTest: 0.08,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const sprite = new THREE.Sprite(material);
+    const aspect = frames[0].image.width / frames[0].image.height;
+    sprite.center.set(0.5, 0);
+    sprite.scale.set(height * aspect, height, 1);
+    sprite.position.y = 0.018;
+    root.add(sprite);
+    return {
+      root,
+      sprite,
+      frames,
+      currentFrame: -1,
+      baseY: 0.12,
+      kind,
+    };
+  }
+
+  function updatePixelCharacter(view, phase, fps) {
+    const nextFrame = Math.floor(elapsed * fps + phase) % 2;
+    if (nextFrame !== view.currentFrame) {
+      view.currentFrame = nextFrame;
+      view.sprite.material.map = view.frames[nextFrame];
+      view.sprite.material.needsUpdate = true;
+    }
+    view.sprite.position.y = 0.018 + Math.sin(elapsed * 4 + phase) * 0.008;
+  }
+
+  function createPixelTexture(kind, frame) {
+    const canvasSize = {
+      hero: [48, 64],
+      pikachu: [48, 56],
+      eevee: [48, 56],
+      bulbasaur: [48, 50],
+    }[kind];
+    const textureCanvas = document.createElement("canvas");
+    textureCanvas.width = canvasSize[0];
+    textureCanvas.height = canvasSize[1];
+    const pixel = textureCanvas.getContext("2d");
+    pixel.imageSmoothingEnabled = false;
+    if (kind === "hero") drawPixelHero(pixel, frame);
+    if (kind === "pikachu") drawPixelPikachu(pixel, frame);
+    if (kind === "eevee") drawPixelEevee(pixel, frame);
+    if (kind === "bulbasaur") drawPixelBulbasaur(pixel, frame);
+
+    const texture = new THREE.CanvasTexture(textureCanvas);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.generateMipmaps = false;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  function drawPixelHero(ctx, frame) {
+    const C = {
+      outline: "#293b48",
+      hairDark: "#a85775",
+      hair: "#df8ca6",
+      hairLight: "#f7b6c7",
+      skin: "#f2c4a8",
+      skinShade: "#d99a81",
+      shirt: "#f7e8c8",
+      teal: "#4f8780",
+      tealDark: "#326b68",
+      belt: "#d4a85c",
+      pants: "#536c78",
+      boot: "#3b4a55",
+      white: "#fff6e0",
+    };
+    const px = (x, y, w, h, color) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    };
+    const stride = frame === 0 ? 0 : 1;
+
+    px(15, 47, 8, 13, C.outline);
+    px(25, 47, 8, 13, C.outline);
+    px(17, 48, 5, 10, C.pants);
+    px(27, 48 + stride, 5, 9 - stride, C.pants);
+    px(14, 57 + stride, 10, 5, C.outline);
+    px(25, 57, 10, 5, C.outline);
+    px(16, 57 + stride, 8, 3, C.boot);
+    px(27, 57, 8, 3, C.boot);
+
+    px(14, 28, 22, 23, C.outline);
+    px(16, 30, 18, 19, C.shirt);
+    px(17, 31, 7, 18, C.teal);
+    px(27, 31, 6, 18, C.teal);
+    px(23, 31, 4, 18, C.shirt);
+    px(17, 45, 17, 4, C.belt);
+    px(23, 45, 4, 4, C.tealDark);
+
+    px(8, 31, 8, 18, C.outline);
+    px(10, 33, 5, 14, C.shirt);
+    px(34, 31, 8, 18, C.outline);
+    px(35, 33, 5, 14, C.shirt);
+    px(9, 47, 6, 5, C.skin);
+    px(35, 47, 6, 5, C.skin);
+
+    px(13, 12, 23, 19, C.outline);
+    px(15, 14, 19, 16, C.skin);
+    px(16, 28, 6, 3, C.skinShade);
+    px(28, 28, 6, 3, C.skinShade);
+
+    px(11, 7, 27, 10, C.outline);
+    px(13, 5, 22, 10, C.outline);
+    px(14, 6, 20, 8, C.hairDark);
+    px(16, 7, 16, 7, C.hair);
+    px(18, 8, 9, 3, C.hairLight);
+    px(10, 10, 7, 15, C.outline);
+    px(12, 11, 4, 12, C.hair);
+    px(33, 10, 6, 14, C.outline);
+    px(34, 11, 3, 11, C.hairDark);
+    px(17, 13, 7, 5, C.hair);
+    px(25, 12, 7, 6, C.hair);
+    px(20, 15, 4, 4, C.hairLight);
+
+    px(19, 21, 3, 4, C.outline);
+    px(28, 21, 3, 4, C.outline);
+    px(20, 22, 1, 1, C.white);
+    px(29, 22, 1, 1, C.white);
+    px(23, 26, 4, 2, C.skinShade);
+    px(24, 26, 2, 1, "#aa625f");
+    px(15, 24, 2, 1, "#e7a1a0");
+    px(32, 24, 2, 1, "#e7a1a0");
+
+    px(23, 39, 4, 3, C.tealDark);
+    px(38, 40, 4, 3, C.skin);
+  }
+
+  function drawPixelPikachu(ctx, frame) {
+    const C = {
+      outline: "#39372c",
+      yellow: "#f4cd43",
+      light: "#ffe16e",
+      red: "#df6a67",
+      dark: "#30373a",
+      white: "#fffbea",
+    };
+    const px = (x, y, w, h, color) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    };
+    const hop = frame === 0 ? 0 : 1;
+
+    px(37, 20, 6, 22, C.outline);
+    px(33, 29, 8, 6, C.outline);
+    px(38, 15, 7, 7, C.outline);
+    px(39, 17, 5, 7, C.yellow);
+    px(35, 24, 6, 9, C.yellow);
+    px(38, 32, 5, 9, C.yellow);
+    px(30, 38, 10, 5, C.outline);
+    px(33, 39, 7, 3, C.yellow);
+
+    px(11, 2, 9, 24, C.outline);
+    px(14, 4, 5, 18, C.yellow);
+    px(13, 2, 5, 7, C.dark);
+    px(28, 2, 9, 24, C.outline);
+    px(29, 4, 5, 18, C.yellow);
+    px(31, 2, 5, 7, C.dark);
+
+    px(12, 24, 25, 25, C.outline);
+    px(14, 25, 21, 23, C.yellow);
+    px(14, 17, 22, 17, C.outline);
+    px(16, 19, 18, 14, C.yellow);
+    px(16, 25, 18, 13, C.light);
+
+    px(15, 26, 5, 4, C.red);
+    px(30, 26, 5, 4, C.red);
+    px(18, 22, 3, 4, C.dark);
+    px(29, 22, 3, 4, C.dark);
+    px(19, 22, 1, 1, C.white);
+    px(30, 22, 1, 1, C.white);
+    px(24, 27, 2, 1, C.dark);
+
+    px(12, 48 + hop, 8, 5, C.outline);
+    px(29, 48, 8, 5, C.outline);
+    px(14, 48 + hop, 5, 3, C.yellow);
+    px(31, 48, 5, 3, C.yellow);
+    px(12, 36, 4, 10, C.outline);
+    px(34, 36, 4, 10, C.outline);
+  }
+
+  function drawPixelEevee(ctx, frame) {
+    const C = {
+      outline: "#4e382d",
+      brown: "#b47d50",
+      brownLight: "#cc9664",
+      brownDark: "#85583a",
+      cream: "#f0dbb7",
+      dark: "#343733",
+      white: "#fff9e8",
+    };
+    const px = (x, y, w, h, color) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    };
+    const hop = frame === 0 ? 0 : 1;
+
+    px(8, 4, 9, 25, C.outline);
+    px(11, 7, 5, 19, C.brown);
+    px(10, 4, 5, 7, C.brownDark);
+    px(31, 4, 9, 25, C.outline);
+    px(33, 7, 5, 19, C.brown);
+    px(34, 4, 5, 7, C.brownDark);
+
+    px(9, 18, 30, 29, C.outline);
+    px(12, 20, 24, 25, C.brown);
+    px(14, 20, 20, 13, C.brownLight);
+    px(12, 30, 8, 7, C.cream);
+    px(29, 30, 8, 7, C.cream);
+    px(18, 32, 13, 8, C.cream);
+
+    px(17, 24, 3, 4, C.dark);
+    px(29, 24, 3, 4, C.dark);
+    px(18, 24, 1, 1, C.white);
+    px(30, 24, 1, 1, C.white);
+    px(23, 28, 3, 2, C.dark);
+
+    px(31, 38, 10, 8, C.outline);
+    px(34, 39, 8, 7, C.brown);
+    px(39, 36, 8, 9, C.outline);
+    px(40, 37, 6, 7, C.brown);
+    px(43, 33, 5, 7, C.outline);
+    px(44, 34, 4, 6, C.cream);
+
+    px(10, 47 + hop, 9, 5, C.outline);
+    px(30, 47, 9, 5, C.outline);
+    px(12, 47 + hop, 6, 3, C.brown);
+    px(32, 47, 6, 3, C.brown);
+  }
+
+  function drawPixelBulbasaur(ctx, frame) {
+    const C = {
+      outline: "#315449",
+      green: "#68aa8d",
+      greenLight: "#86c2a6",
+      greenDark: "#3e7d69",
+      bulb: "#75aa77",
+      bulbLight: "#96c38a",
+      red: "#df7772",
+      white: "#fff9e9",
+      dark: "#33484b",
+    };
+    const px = (x, y, w, h, color) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    };
+    const hop = frame === 0 ? 0 : 1;
+
+    px(12, 7, 27, 21, C.outline);
+    px(15, 8, 21, 18, C.bulb);
+    px(18, 7, 14, 8, C.bulbLight);
+    px(14, 23, 24, 21, C.outline);
+    px(16, 25, 20, 17, C.green);
+    px(11, 27, 8, 12, C.outline);
+    px(31, 27, 8, 12, C.outline);
+    px(13, 28, 5, 9, C.greenDark);
+    px(32, 28, 5, 9, C.greenDark);
+
+    px(14, 31, 23, 14, C.outline);
+    px(16, 33, 19, 11, C.greenLight);
+    px(16, 36, 4, 3, C.red);
+    px(31, 36, 4, 3, C.red);
+    px(20, 34, 4, 5, C.white);
+    px(29, 34, 4, 5, C.white);
+    px(21, 35, 2, 3, C.dark);
+    px(30, 35, 2, 3, C.dark);
+    px(24, 39, 4, 1, C.dark);
+
+    px(8, 43 + hop, 11, 6, C.outline);
+    px(31, 43, 11, 6, C.outline);
+    px(10, 43 + hop, 7, 4, C.greenDark);
+    px(33, 43, 7, 4, C.greenDark);
+    px(19, 13, 5, 4, C.greenDark);
+    px(26, 18, 4, 3, C.greenDark);
   }
 
   function createPlayer() {
@@ -1440,27 +1739,35 @@
     const player = frame.player;
     const playerPosition = gridPosition(player.renderX, player.renderY);
     playerView.root.position.set(playerPosition.x, playerView.baseY, playerPosition.z);
-    playerView.root.rotation.y = 0.33 + (player.facing < 0 ? 0.38 : 0);
     const walkAmount = player.moving ? Math.sin(player.stepPhase * Math.PI * 4) : 0;
     const walkBob = player.moving ? Math.abs(walkAmount) * 0.055 : Math.sin(elapsed * 2.2) * 0.014;
     playerView.root.position.y += walkBob;
-    playerView.leftLeg.rotation.x = walkAmount * 0.52;
-    playerView.rightLeg.rotation.x = -walkAmount * 0.52;
-    playerView.leftArm.rotation.x = -walkAmount * 0.4;
-    playerView.rightArm.rotation.x = walkAmount * 0.4;
-    playerView.head.rotation.y = Math.sin(elapsed * 0.65) * 0.035;
+    if (pixelMode) {
+      updatePixelCharacter(playerView, player.moving ? 0.1 : 0.24, player.moving ? 0.42 : 0.2);
+    } else {
+      playerView.root.rotation.y = 0.33 + (player.facing < 0 ? 0.38 : 0);
+      playerView.leftLeg.rotation.x = walkAmount * 0.52;
+      playerView.rightLeg.rotation.x = -walkAmount * 0.52;
+      playerView.leftArm.rotation.x = -walkAmount * 0.4;
+      playerView.rightArm.rotation.x = walkAmount * 0.4;
+      playerView.head.rotation.y = Math.sin(elapsed * 0.65) * 0.035;
+    }
 
     Object.entries(residentViews).forEach(([id, view], index) => {
       const resident = config.residents[id];
-      const visible = state.residents[id];
+      const visible = state.residents[id] || config.previewResidents;
       view.root.visible = visible;
       if (!visible) return;
       const position = gridPosition(resident.x, resident.y);
       view.root.position.set(position.x, 0.12, position.z);
-      view.root.position.y += Math.sin(elapsed * 2 + view.idleOffset) * 0.018;
-      view.root.rotation.y = 0.2 + Math.sin(elapsed * 0.45 + index) * 0.08;
-      if (view.tail) view.tail.rotation.z = Math.sin(elapsed * 1.8 + view.idleOffset) * 0.1;
-      if (view.bulb) view.bulb.rotation.y = Math.sin(elapsed * 0.9) * 0.045;
+      view.root.position.y += Math.sin(elapsed * 2 + index) * 0.018;
+      if (pixelMode) {
+        updatePixelCharacter(view, index * 0.33, 0.2);
+      } else {
+        view.root.rotation.y = 0.2 + Math.sin(elapsed * 0.45 + index) * 0.08;
+        if (view.tail) view.tail.rotation.z = Math.sin(elapsed * 1.8 + view.idleOffset) * 0.1;
+        if (view.bulb) view.bulb.rotation.y = Math.sin(elapsed * 0.9) * 0.045;
+      }
     });
 
     objectViews.forEach((view) => {

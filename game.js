@@ -10,7 +10,9 @@
   const baseTileW = 94;
   const baseTileH = 47;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const quickPlay = new URLSearchParams(window.location.search).get("play") === "1";
+  const queryParams = new URLSearchParams(window.location.search);
+  const quickPlay = queryParams.get("play") === "1";
+  const pixelMode = queryParams.get("pixel") === "1";
 
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => [...document.querySelectorAll(selector)];
@@ -2679,6 +2681,8 @@
         worldWidth: WORLD_W,
         worldHeight: WORLD_H,
         tileType,
+        pixelMode,
+        previewResidents: pixelMode,
       });
     }
     if (scene3dReady) {
@@ -2691,7 +2695,7 @@
     updateHud();
     if (state.started || quickPlay) {
       dom.welcome.classList.add("dismissed");
-      showHint("欢迎回来，岛上的朋友都在等你");
+      showHint(pixelMode ? "比例样片：3D 地图 + GBA 像素角色" : "欢迎回来，岛上的朋友都在等你");
     } else {
       dom.hintBubble.classList.add("hidden");
     }

@@ -33,6 +33,12 @@ npm start
 
 部署完成后，可直接在 iPhone 的 Safari 中打开。
 
+## 像素模型样片
+
+保留 3D 地图尺度，并将主角、皮卡丘、伊布和妙蛙种子切换为 GBA 风格的平面像素精灵：
+
+`https://aheidashuaige-coder.github.io/sunny-isle-pokopia/?play=1&pixel=1`
+
 ## iPhone Safari 局域网访问
 
 在电脑上运行 `npm start` 后，让 iPhone 与电脑连接同一个 Wi-Fi，在 Safari 中打开：
